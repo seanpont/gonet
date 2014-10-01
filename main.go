@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/seanpont/gobro"
 	"io/ioutil"
@@ -202,6 +203,41 @@ func echoServer2(args []string) {
 	}
 }
 
+func udpEchoServer(args []string) {
+	checkArgs(args, 1, "Usage: udpEchoServer <port>")
+	packetConn, err := net.ListenPacket("udp", ":"+args[0])
+	gobro.ExitOnError(err)
+	var b [512]byte
+	for {
+		n, addr, err := packetConn.ReadFrom(b[0:])
+		if err != nil {
+			continue
+		}
+		fmt.Println(string(b[:n]))
+		packetConn.WriteTo(b[:n], addr)
+	}
+}
+
+func udpClient(args []string) {
+	checkArgs(args, 1, "udpClient host:port")
+	udpAddr, err := net.ResolveUDPAddr("udp", args[0])
+	gobro.ExitOnError(err)
+	udpConn, err := net.DialUDP("udp", nil, udpAddr)
+	gobro.ExitOnError(err)
+	defer udpConn.Close()
+	reader := bufio.NewReader(os.Stdin)
+	var buff [512]byte
+	for {
+		line, _, err := reader.ReadLine()
+		gobro.ExitOnError(err)
+		_, err = udpConn.Write(line)
+		gobro.ExitOnError(err)
+		n, err := udpConn.Read(buff[0:])
+		gobro.ExitOnError(err)
+		fmt.Println("Response: " + string(buff[:n]))
+	}
+}
+
 // ===== HELPERS =============================================================
 
 func checkArgs(args []string, numArgs int, message string, a ...interface{}) {
@@ -225,6 +261,8 @@ func main() {
 		"headRequest2":     headRequest2,
 		"udpDaytimeClient": udpDaytimeClient,
 		"udpDaytimeServer": udpDaytimeServer,
+		"udpEchoServer":    udpEchoServer,
+		"udpClient":        udpClient,
 	}
 
 	if len(os.Args) < 2 {
