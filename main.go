@@ -89,6 +89,18 @@ func headRequest(args []string) {
 	conn.Close()
 }
 
+func headRequest2(args []string) {
+	checkArgs(args, 1, "Usage: headRequest2 host:port")
+	service := args[0]
+	conn, err := net.Dial("tcp", service)
+	gobro.ExitOnError(err)
+	_, err = conn.Write([]byte("HEAD / HTTP/1.0\r\n\r\n"))
+	gobro.ExitOnError(err)
+	result, err := ioutil.ReadAll(conn)
+	gobro.ExitOnError(err)
+	fmt.Println(string(result))
+}
+
 // ===== UDP DAYTIME =========================================================
 
 func udpDaytimeClient(args []string) {
@@ -149,23 +161,44 @@ func echoServer(args []string) {
 		if err != nil {
 			continue
 		}
-		go echoConn(conn)
+		go func(conn net.Conn) {
+			defer conn.Close()
+
+			var buf [512]byte
+			for {
+				n, err := conn.Read(buf[0:])
+				if err != nil {
+					return
+				}
+				_, err2 := conn.Write(buf[0:n])
+				if err2 != nil {
+					return
+				}
+			}
+		}(conn)
 	}
 }
 
-func echoConn(conn net.Conn) {
-	defer conn.Close()
-
-	var buf [512]byte
+func echoServer2(args []string) {
+	checkArgs(args, 1, "Usage: echoServer2 <port>")
+	listener, err := net.Listen("tcp", ":"+args[0])
+	gobro.ExitOnError(err)
 	for {
-		n, err := conn.Read(buf[0:])
+		conn, err := listener.Accept()
 		if err != nil {
-			return
+			continue
 		}
-		_, err2 := conn.Write(buf[0:n])
-		if err2 != nil {
-			return
-		}
+		go func(conn net.Conn) {
+			var buff [512]byte
+			n, err := conn.Read(buff[0:])
+			if err != nil {
+				return
+			}
+			_, err = conn.Write(buff[:n])
+			if err != nil {
+				return
+			}
+		}(conn)
 	}
 }
 
@@ -186,8 +219,10 @@ func main() {
 		"parseIP":          parseIp,
 		"resolveIp":        resolveIp,
 		"echoServer":       echoServer,
+		"echoServer2":      echoServer2,
 		"lookupPort":       lookupPort,
 		"headRequest":      headRequest,
+		"headRequest2":     headRequest2,
 		"udpDaytimeClient": udpDaytimeClient,
 		"udpDaytimeServer": udpDaytimeServer,
 	}
