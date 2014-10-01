@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"time"
 )
 
 func printArgs(args []string) {
@@ -88,6 +89,44 @@ func headRequest(args []string) {
 	conn.Close()
 }
 
+// ===== UDP DAYTIME =========================================================
+
+func udpDaytimeClient(args []string) {
+	checkArgs(args, 1, "udpDaytimeClient host:port")
+	service := args[0]
+	udpAddr, err := net.ResolveUDPAddr("udp", service)
+	gobro.ExitOnError(err)
+	conn, err := net.DialUDP("udp", nil, udpAddr)
+	gobro.ExitOnError(err)
+	_, err = conn.Write([]byte("Time please"))
+	gobro.ExitOnError(err)
+	var buff [512]byte
+	n, err := conn.Read(buff[0:])
+	gobro.ExitOnError(err)
+	fmt.Println("Time: ", string(buff[:n]))
+}
+
+func udpDaytimeServer(args []string) {
+	checkArgs(args, 1, "udpDaytimeServer <port>")
+	service := ":" + args[0]
+	udpAddr, err := net.ResolveUDPAddr("udp", service)
+	gobro.ExitOnError(err)
+	conn, err := net.ListenUDP("udp", udpAddr)
+
+	gobro.ExitOnError(err)
+	for {
+		var buf [512]byte
+		_, addr, err := conn.ReadFromUDP(buf[0:])
+		fmt.Println("readFromUdp", addr)
+		if err != nil {
+			continue
+		}
+		go func(conn *net.UDPConn, addr *net.UDPAddr) {
+			conn.WriteToUDP([]byte(time.Now().String()), addr)
+		}(conn, addr)
+	}
+}
+
 // ===== ECHO SERVER =========================================================
 
 /*
@@ -143,12 +182,14 @@ func checkArgs(args []string, numArgs int, message string, a ...interface{}) {
 
 func main() {
 	commands := map[string]func(args []string){
-		"printArgs":   printArgs,
-		"parseIP":     parseIp,
-		"resolveIp":   resolveIp,
-		"echoServer":  echoServer,
-		"lookupPort":  lookupPort,
-		"headRequest": headRequest,
+		"printArgs":        printArgs,
+		"parseIP":          parseIp,
+		"resolveIp":        resolveIp,
+		"echoServer":       echoServer,
+		"lookupPort":       lookupPort,
+		"headRequest":      headRequest,
+		"udpDaytimeClient": udpDaytimeClient,
+		"udpDaytimeServer": udpDaytimeServer,
 	}
 
 	if len(os.Args) < 2 {
