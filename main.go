@@ -2,8 +2,10 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"github.com/seanpont/gobro"
+	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -272,6 +274,52 @@ func checkSum(msg []byte) uint16 {
 	return uint16(^sum)
 }
 
+// ===== SERIALIZATION =======================================================
+
+type Person struct {
+	Name  Name
+	Email []Email
+}
+
+type Name struct {
+	Family   string
+	Personal string
+}
+
+type Email struct {
+	Kind    string
+	Address string
+}
+
+func serializeJson(args []string) {
+	checkArgs(args, 4, "Usage: saveJson firstName, lastName, workEmail personalEmail")
+	person := Person{
+		Name:  Name{Family: args[1], Personal: args[0]},
+		Email: []Email{Email{Kind: "work", Address: args[2]}, Email{Kind: "home", Address: args[3]}},
+	}
+	file, err := os.Create(os.TempDir() + "temp.json")
+	gobro.ExitOnError(err)
+	defer file.Close()
+	saveJson(file, &person)
+	fmt.Println("Person Persisted")
+	file, err = os.Open(file.Name())
+	gobro.ExitOnError(err)
+	var person2 Person
+	os.Open(file.Name())
+	readJson(file, &person2)
+	fmt.Println(person2)
+}
+
+func saveJson(w io.Writer, key interface{}) {
+	err := json.NewEncoder(w).Encode(key)
+	gobro.ExitOnError(err)
+}
+
+func readJson(r io.Reader, key interface{}) {
+	err := json.NewDecoder(r).Decode(key)
+	gobro.ExitOnError(err)
+}
+
 // ===== HELPERS =============================================================
 
 func checkArgs(args []string, numArgs int, message string, a ...interface{}) {
@@ -298,6 +346,7 @@ func main() {
 		"udpEchoServer":    udpEchoServer,
 		"udpClient":        udpClient,
 		"ping":             ping,
+		"serializeJson":    serializeJson,
 	}
 
 	if len(os.Args) < 2 {
