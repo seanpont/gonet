@@ -2,13 +2,14 @@ package main
 
 import (
 	"bufio"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"github.com/seanpont/gobro"
-	"io"
 	"io/ioutil"
 	"net"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -291,33 +292,52 @@ type Email struct {
 	Address string
 }
 
-func serializeJson(args []string) {
-	checkArgs(args, 4, "Usage: saveJson firstName, lastName, workEmail personalEmail")
-	person := Person{
-		Name:  Name{Family: args[1], Personal: args[0]},
-		Email: []Email{Email{Kind: "work", Address: args[2]}, Email{Kind: "home", Address: args[3]}},
+func defaultPerson() *Person {
+	return &Person{
+		Name: Name{Family: "Pont", Personal: "Sean"},
+		Email: []Email{
+			Email{Kind: "work", Address: "sean@cotap.com"},
+			Email{Kind: "home", Address: "seanpont@gmail.com"},
+		},
 	}
+}
+
+type Encoder interface {
+	Encode(v interface{}) error
+}
+
+type Decoder interface {
+	Decode(v interface{}) error
+}
+
+func serializePerson(args []string) {
+	checkArgs(args, 1, "serializePersion <json or gob")
+	person := defaultPerson()
+	fmt.Println(*person)
 	file, err := os.Create(os.TempDir() + "temp.json")
 	gobro.ExitOnError(err)
-	defer file.Close()
-	saveJson(file, &person)
+	var encoder Encoder
+	if strings.EqualFold(args[0], "json") {
+		encoder = json.NewEncoder(file)
+	} else if strings.EqualFold(args[0], "gob") {
+		encoder = gob.NewEncoder(file)
+	}
+	err = encoder.Encode(person)
+	gobro.ExitOnError(err)
 	fmt.Println("Person Persisted")
 	file, err = os.Open(file.Name())
 	gobro.ExitOnError(err)
 	var person2 Person
 	os.Open(file.Name())
-	readJson(file, &person2)
+	var decoder Decoder
+	if strings.EqualFold(args[0], "json") {
+		decoder = json.NewDecoder(file)
+	} else if strings.EqualFold(args[0], "gob") {
+		decoder = gob.NewDecoder(file)
+	}
+	err = decoder.Decode(&person2)
+	gobro.ExitOnError(err)
 	fmt.Println(person2)
-}
-
-func saveJson(w io.Writer, key interface{}) {
-	err := json.NewEncoder(w).Encode(key)
-	gobro.ExitOnError(err)
-}
-
-func readJson(r io.Reader, key interface{}) {
-	err := json.NewDecoder(r).Decode(key)
-	gobro.ExitOnError(err)
 }
 
 // ===== HELPERS =============================================================
@@ -346,7 +366,7 @@ func main() {
 		"udpEchoServer":    udpEchoServer,
 		"udpClient":        udpClient,
 		"ping":             ping,
-		"serializeJson":    serializeJson,
+		"serializePerson":  serializePerson,
 	}
 
 	if len(os.Args) < 2 {
