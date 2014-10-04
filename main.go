@@ -2,7 +2,10 @@ package main
 
 import (
 	"bufio"
+	"code.google.com/p/go.crypto/blowfish"
+	"crypto/cipher"
 	"crypto/md5"
+	"crypto/rand"
 	"encoding/gob"
 	"encoding/json"
 	"errors"
@@ -418,6 +421,34 @@ func md5Hash(args []string) {
 	fmt.Println(hashSize)
 }
 
+func blowfisher(args []string) {
+	if len(args) < 2 {
+		fmt.Fprintln(os.Stderr, "Usage: blowfish <pw> <message>")
+		os.Exit(1)
+	}
+	key := args[0]
+	message := []byte(strings.Join(args[1:], " "))
+	fmt.Printf("Key: %s\n", key)
+	fmt.Printf("Message: %s\n", message)
+
+	blockCipher, err := blowfish.NewCipher([]byte(key))
+	gobro.ExitOnError(err)
+
+	var iv [blowfish.BlockSize]byte
+	_, err = rand.Read(iv[:])
+	gobro.ExitOnError(err)
+	fmt.Printf("IV: %x\n", iv)
+	stream := cipher.NewCFBEncrypter(blockCipher, iv[:])
+	stream.XORKeyStream(message, message)
+
+	fmt.Printf("Encrypted: %x\n", message)
+
+	stream = cipher.NewCFBDecrypter(blockCipher, iv[:])
+	stream.XORKeyStream(message, message)
+
+	fmt.Printf("Decrypted: %s\n", string(message))
+}
+
 // ===== HELPERS =============================================================
 
 func checkArgs(args []string, numArgs int, message string, a ...interface{}) {
@@ -447,6 +478,7 @@ func main() {
 		"serializePerson":  serializePerson,
 		"ftpServer":        ftpServer,
 		"md5Hash":          md5Hash,
+		"blowfisher":       blowfisher,
 	}
 
 	if len(os.Args) < 2 {
