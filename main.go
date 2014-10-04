@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/md5"
 	"encoding/gob"
 	"encoding/json"
 	"errors"
@@ -359,7 +360,7 @@ func handleFtpConn(conn net.Conn) {
 	var buff [512]byte
 	for {
 		n, err := conn.Read(buff[0:])
-		if err != nil && err {
+		if err != nil {
 			gobro.LogError(err)
 			return
 		}
@@ -404,6 +405,19 @@ func ftpServerLs() (string, error) {
 	return strings.Join(names, "\n"), nil
 }
 
+// ===== CRYPTO ==============================================================
+
+func md5Hash(args []string) {
+	message := strings.Join(args, " ")
+	hash := md5.New()
+	_, err := hash.Write([]byte(message))
+	gobro.ExitOnError(err)
+	hashValue := hash.Sum(nil)
+	hashSize := hash.Size()
+	fmt.Printf("%x\n", hashValue)
+	fmt.Println(hashSize)
+}
+
 // ===== HELPERS =============================================================
 
 func checkArgs(args []string, numArgs int, message string, a ...interface{}) {
@@ -432,6 +446,7 @@ func main() {
 		"ping":             ping,
 		"serializePerson":  serializePerson,
 		"ftpServer":        ftpServer,
+		"md5Hash":          md5Hash,
 	}
 
 	if len(os.Args) < 2 {
