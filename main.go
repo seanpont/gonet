@@ -461,35 +461,24 @@ func checkArgs(args []string, numArgs int, message string, a ...interface{}) {
 // ===== MAIN ================================================================
 
 func main() {
-	commands := map[string]func(args []string){
-		"printArgs":        printArgs,
-		"parseIP":          parseIp,
-		"resolveIp":        resolveIp,
-		"echoServer":       echoServer,
-		"echoServer2":      echoServer2,
-		"lookupPort":       lookupPort,
-		"headRequest":      headRequest,
-		"headRequest2":     headRequest2,
-		"udpDaytimeClient": udpDaytimeClient,
-		"udpDaytimeServer": udpDaytimeServer,
-		"udpEchoServer":    udpEchoServer,
-		"udpClient":        udpClient,
-		"ping":             ping,
-		"serializePerson":  serializePerson,
-		"ftpServer":        ftpServer,
-		"md5Hash":          md5Hash,
-		"blowfisher":       blowfisher,
-	}
 
-	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <command> [args...]\n", os.Args[0])
-		os.Exit(1)
-	}
-	command := os.Args[1]
-	fn := commands[command]
-	if fn == nil {
-		fmt.Fprintf(os.Stderr, "Command '%s' not found\n", command)
-		os.Exit(1)
-	}
-	fn(os.Args[2:])
+	gobro.NewCommandMap(
+		printArgs,
+		parseIp,
+		resolveIp,
+		echoServer,
+		echoServer2,
+		lookupPort,
+		headRequest,
+		headRequest2,
+		udpDaytimeClient,
+		udpDaytimeServer,
+		udpEchoServer,
+		udpClient,
+		ping,
+		serializePerson,
+		ftpServer,
+		md5Hash,
+		blowfisher).Run(os.Args)
+
 }
