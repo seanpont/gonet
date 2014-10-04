@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/gob"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/seanpont/gobro"
 	"io/ioutil"
@@ -340,6 +341,69 @@ func serializePerson(args []string) {
 	fmt.Println(person2)
 }
 
+// ===== DIRECTORY BROWSER ===================================================
+
+func ftpServer(args []string) {
+	checkArgs(args, 1, "ftpServer <port>")
+	listener, err := net.Listen("tcp", ":"+args[0])
+	gobro.ExitOnError(err)
+	for {
+		conn, err := listener.Accept()
+		gobro.ExitOnError(err)
+		go handleFtpConn(conn)
+	}
+}
+
+func handleFtpConn(conn net.Conn) {
+	defer conn.Close()
+	var buff [512]byte
+	for {
+		n, err := conn.Read(buff[0:])
+		if err != nil && err {
+			gobro.LogError(err)
+			return
+		}
+		request := strings.Split(string(buff[:n]), " ")
+		gobro.TrimAll(request)
+		fmt.Println(request)
+		command := strings.ToLower(request[0])
+		fmt.Println(command, command == "cd", command == "ls", command == "pwd")
+		var resp string
+		if command == "cd" {
+			resp, err = "OK", os.Chdir(request[1])
+		} else if command == "pwd" {
+			resp, err = os.Getwd()
+		} else if command == "ls" {
+			resp, err = ftpServerLs()
+		} else {
+			err = errors.New("Unknown command: " + command)
+		}
+		if err != nil {
+			gobro.LogError(err)
+			_, err = conn.Write([]byte(err.Error() + "\r\n\r\n"))
+		} else {
+			_, err = conn.Write([]byte(resp + "\r\n\r\n"))
+		}
+		if err != nil { // Write failed
+			gobro.LogError(err)
+			return
+		}
+	}
+}
+
+func ftpServerLs() (string, error) {
+	dir, err := os.Open(".")
+	if err != nil {
+		return "", err
+	}
+	defer dir.Close()
+	names, err := dir.Readdirnames(-1)
+	if err != nil {
+		return "", err
+	}
+	return strings.Join(names, "\n"), nil
+}
+
 // ===== HELPERS =============================================================
 
 func checkArgs(args []string, numArgs int, message string, a ...interface{}) {
@@ -367,6 +431,7 @@ func main() {
 		"udpClient":        udpClient,
 		"ping":             ping,
 		"serializePerson":  serializePerson,
+		"ftpServer":        ftpServer,
 	}
 
 	if len(os.Args) < 2 {
