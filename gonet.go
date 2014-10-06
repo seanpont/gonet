@@ -59,11 +59,11 @@ To interrogate this file, use net.LookupPort(network, service string) (port int,
 network = "tcp" or "udp" and the service is the name of the sertice, like "telnet" or "domain"
 */
 func lookupPort(args []string) {
-	checkArgs(args, 2, "Usage: lookupPort <tcp or udp> <service>")
+	gobro.CheckArgs(args, 2, "Usage: lookupPort <tcp or udp> <service>")
 	networkType, service := args[0], args[1]
 
 	port, err := net.LookupPort(networkType, service)
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	fmt.Println("Service port:", port)
 }
 
@@ -80,61 +80,61 @@ func (c *TCPConn) Read(b []byte) (n int, err os.Error)
 This function sends a HEAD request.
 */
 func headRequest(args []string) {
-	checkArgs(args, 1, "Usage: headRequest host:port")
+	gobro.CheckArgs(args, 1, "Usage: headRequest host:port")
 	service := args[0]
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 
 	_, err = conn.Write([]byte("HEAD / HTTP/1.0\r\n\r\n"))
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 
 	result, err := ioutil.ReadAll(conn)
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 
 	fmt.Println(string(result))
 	conn.Close()
 }
 
 func headRequest2(args []string) {
-	checkArgs(args, 1, "Usage: headRequest2 host:port")
+	gobro.CheckArgs(args, 1, "Usage: headRequest2 host:port")
 	service := args[0]
 	conn, err := net.Dial("tcp", service)
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	_, err = conn.Write([]byte("HEAD / HTTP/1.0\r\n\r\n"))
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	result, err := ioutil.ReadAll(conn)
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	fmt.Println(string(result))
 }
 
 // ===== UDP DAYTIME =========================================================
 
 func udpDaytimeClient(args []string) {
-	checkArgs(args, 1, "udpDaytimeClient host:port")
+	gobro.CheckArgs(args, 1, "udpDaytimeClient host:port")
 	service := args[0]
 	udpAddr, err := net.ResolveUDPAddr("udp", service)
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	conn, err := net.DialUDP("udp", nil, udpAddr)
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	_, err = conn.Write([]byte("Time please"))
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	var buff [512]byte
 	n, err := conn.Read(buff[0:])
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	fmt.Println("Time: ", string(buff[:n]))
 }
 
 func udpDaytimeServer(args []string) {
-	checkArgs(args, 1, "udpDaytimeServer <port>")
+	gobro.CheckArgs(args, 1, "udpDaytimeServer <port>")
 	service := ":" + args[0]
 	udpAddr, err := net.ResolveUDPAddr("udp", service)
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	conn, err := net.ListenUDP("udp", udpAddr)
 
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	for {
 		var buf [512]byte
 		_, addr, err := conn.ReadFromUDP(buf[0:])
@@ -160,10 +160,10 @@ func echoServer(args []string) {
 	}
 	service := ":" + args[0]
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 
 	listener, err := net.ListenTCP("tcp", tcpAddr)
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 
 	for {
 		conn, err := listener.Accept()
@@ -189,9 +189,9 @@ func echoServer(args []string) {
 }
 
 func echoServer2(args []string) {
-	checkArgs(args, 1, "Usage: echoServer2 <port>")
+	gobro.CheckArgs(args, 1, "Usage: echoServer2 <port>")
 	listener, err := net.Listen("tcp", ":"+args[0])
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -212,9 +212,9 @@ func echoServer2(args []string) {
 }
 
 func udpEchoServer(args []string) {
-	checkArgs(args, 1, "Usage: udpEchoServer <port>")
+	gobro.CheckArgs(args, 1, "Usage: udpEchoServer <port>")
 	packetConn, err := net.ListenPacket("udp", ":"+args[0])
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	var b [512]byte
 	for {
 		n, addr, err := packetConn.ReadFrom(b[0:])
@@ -227,21 +227,21 @@ func udpEchoServer(args []string) {
 }
 
 func udpClient(args []string) {
-	checkArgs(args, 1, "udpClient host:port")
+	gobro.CheckArgs(args, 1, "udpClient host:port")
 	udpAddr, err := net.ResolveUDPAddr("udp", args[0])
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	udpConn, err := net.DialUDP("udp", nil, udpAddr)
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	defer udpConn.Close()
 	reader := bufio.NewReader(os.Stdin)
 	var buff [512]byte
 	for {
 		line, _, err := reader.ReadLine()
-		gobro.ExitOnError(err)
+		gobro.CheckErr(err)
 		_, err = udpConn.Write(line)
-		gobro.ExitOnError(err)
+		gobro.CheckErr(err)
 		n, err := udpConn.Read(buff[0:])
-		gobro.ExitOnError(err)
+		gobro.CheckErr(err)
 		fmt.Println("Response: " + string(buff[:n]))
 	}
 }
@@ -250,11 +250,11 @@ func udpClient(args []string) {
 
 func ping(args []string) {
 	// THIS FUNCTION IS NOT WORKING
-	checkArgs(args, 1, "ping <host>")
+	gobro.CheckArgs(args, 1, "ping <host>")
 	ipAddr, err := net.ResolveIPAddr("ip", args[0])
-	gobro.ExitOnError(err, "Resolution Error!")
+	gobro.CheckErr(err, "Resolution Error!")
 	ipConn, err := net.DialIP("ip4:icmp", ipAddr, ipAddr)
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	defer ipConn.Close()
 	var msg [8]byte
 	msg[0] = 8  //echo
@@ -265,7 +265,7 @@ func ping(args []string) {
 	msg[3] = byte(check & 255)
 
 	_, err = ipConn.Write(msg[:])
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	ipConn.Read(msg[0:])
 	fmt.Println(msg)
 }
@@ -316,11 +316,11 @@ type Decoder interface {
 }
 
 func serializePerson(args []string) {
-	checkArgs(args, 1, "serializePersion <json or gob")
+	gobro.CheckArgs(args, 1, "serializePersion <json or gob")
 	person := defaultPerson()
 	fmt.Println(*person)
 	file, err := os.Create(os.TempDir() + "temp.json")
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	var encoder Encoder
 	if strings.EqualFold(args[0], "json") {
 		encoder = json.NewEncoder(file)
@@ -328,10 +328,10 @@ func serializePerson(args []string) {
 		encoder = gob.NewEncoder(file)
 	}
 	err = encoder.Encode(person)
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	fmt.Println("Person Persisted")
 	file, err = os.Open(file.Name())
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	var person2 Person
 	os.Open(file.Name())
 	var decoder Decoder
@@ -341,19 +341,19 @@ func serializePerson(args []string) {
 		decoder = gob.NewDecoder(file)
 	}
 	err = decoder.Decode(&person2)
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	fmt.Println(person2)
 }
 
 // ===== DIRECTORY BROWSER ===================================================
 
 func ftpServer(args []string) {
-	checkArgs(args, 1, "ftpServer <port>")
+	gobro.CheckArgs(args, 1, "ftpServer <port>")
 	listener, err := net.Listen("tcp", ":"+args[0])
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	for {
 		conn, err := listener.Accept()
-		gobro.ExitOnError(err)
+		gobro.CheckErr(err)
 		go handleFtpConn(conn)
 	}
 }
@@ -364,7 +364,7 @@ func handleFtpConn(conn net.Conn) {
 	for {
 		n, err := conn.Read(buff[0:])
 		if err != nil {
-			gobro.LogError(err)
+			gobro.LogErr(err)
 			return
 		}
 		request := strings.Split(string(buff[:n]), " ")
@@ -383,13 +383,13 @@ func handleFtpConn(conn net.Conn) {
 			err = errors.New("Unknown command: " + command)
 		}
 		if err != nil {
-			gobro.LogError(err)
+			gobro.LogErr(err)
 			_, err = conn.Write([]byte(err.Error() + "\r\n\r\n"))
 		} else {
 			_, err = conn.Write([]byte(resp + "\r\n\r\n"))
 		}
 		if err != nil { // Write failed
-			gobro.LogError(err)
+			gobro.LogErr(err)
 			return
 		}
 	}
@@ -414,7 +414,7 @@ func md5Hash(args []string) {
 	message := strings.Join(args, " ")
 	hash := md5.New()
 	_, err := hash.Write([]byte(message))
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	hashValue := hash.Sum(nil)
 	hashSize := hash.Size()
 	fmt.Printf("%x\n", hashValue)
@@ -432,11 +432,11 @@ func blowfisher(args []string) {
 	fmt.Printf("Message: %s\n", message)
 
 	blockCipher, err := blowfish.NewCipher([]byte(key))
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 
 	var iv [blowfish.BlockSize]byte
 	_, err = rand.Read(iv[:])
-	gobro.ExitOnError(err)
+	gobro.CheckErr(err)
 	fmt.Printf("IV: %x\n", iv)
 	stream := cipher.NewCFBEncrypter(blockCipher, iv[:])
 	stream.XORKeyStream(message, message)
@@ -447,15 +447,6 @@ func blowfisher(args []string) {
 	stream.XORKeyStream(message, message)
 
 	fmt.Printf("Decrypted: %s\n", string(message))
-}
-
-// ===== HELPERS =============================================================
-
-func checkArgs(args []string, numArgs int, message string, a ...interface{}) {
-	if len(args) != numArgs {
-		fmt.Fprintf(os.Stderr, message+"\n", a...)
-		os.Exit(1)
-	}
 }
 
 // ===== MAIN ================================================================
