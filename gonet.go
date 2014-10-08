@@ -199,13 +199,17 @@ func echoServer2(args []string) {
 		}
 		go func(conn net.Conn) {
 			var buff [512]byte
-			n, err := conn.Read(buff[0:])
-			if err != nil {
-				return
-			}
-			_, err = conn.Write(buff[:n])
-			if err != nil {
-				return
+			for {
+				n, err := conn.Read(buff[0:])
+				if err != nil {
+					return
+				}
+				fmt.Printf(string(buff[:]))
+				_, err = conn.Write(buff[:n])
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err.Error())
+					return
+				}
 			}
 		}(conn)
 	}
