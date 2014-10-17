@@ -468,7 +468,7 @@ func genX509Cert(args []string) {
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
-			CommonName:   "sean.pont.name",
+			CommonName:   "seanpont.com",
 			Organization: []string{"Sean Pont"},
 		},
 		NotBefore:             now,
@@ -500,7 +500,6 @@ func genX509Cert(args []string) {
 	err = pem.Encode(keyPEMFile, &pemBlock)
 	gobro.CheckErr(err)
 	keyPEMFile.Close()
-
 }
 
 // ===== TLS =================================================================
@@ -508,7 +507,7 @@ func genX509Cert(args []string) {
 func tlsEchoServer(args []string) {
 	gobro.CheckArgs(args, 1, "Usage: gonet tlsEchoServer <port>")
 	service := ":" + args[0]
-	cert, err := tls.LoadX509KeyPair("seanpont.pem", "seanpont.private.pem")
+	cert, err := tls.LoadX509KeyPair("seanpont.com.pem", "private.pem")
 	gobro.CheckErr(err)
 	config := &tls.Config{Certificates: []tls.Certificate{cert}}
 	listener, err := tls.Listen("tcp", service, config)
@@ -540,6 +539,10 @@ func handleTlsEchoClient(conn net.Conn) {
 	}
 }
 
+func tlsEchoClient(args []string) {
+	fmt.Println("openssl s_client -tls1 -connect localhost:5000")
+}
+
 // ===== MAIN ================================================================
 
 func main() {
@@ -563,6 +566,7 @@ func main() {
 		md5Hash,
 		blowfisher,
 		genX509Cert,
-		tlsEchoServer).Run(os.Args)
+		tlsEchoServer,
+		tlsEchoClient).Run(os.Args)
 
 }
