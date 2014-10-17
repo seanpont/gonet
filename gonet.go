@@ -6,12 +6,18 @@ import (
 	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/gob"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"github.com/seanpont/gobro"
 	"io/ioutil"
+	"math/big"
 	"net"
 	"os"
 	"strings"
@@ -453,6 +459,87 @@ func blowfisher(args []string) {
 	fmt.Printf("Decrypted: %s\n", string(message))
 }
 
+func genX509Cert(args []string) {
+	key, err := rsa.GenerateKey(rand.Reader, 512)
+	gobro.CheckErr(err)
+
+	now := time.Now()
+	then := now.Add(time.Hour * 24 * 365) // one year
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			CommonName:   "sean.pont.name",
+			Organization: []string{"Sean Pont"},
+		},
+		NotBefore:             now,
+		NotAfter:              then,
+		SubjectKeyId:          []byte{1, 2, 3, 4},
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		BasicConstraintsValid: true,
+		IsCA:     true,
+		DNSNames: []string{"seanpont.com", "localhost"},
+	}
+
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &key.PublicKey, key)
+	gobro.CheckErr(err)
+	certCerFile, err := os.Create("seanpont.com.cer")
+	gobro.CheckErr(err)
+	_, err = certCerFile.Write(derBytes)
+	gobro.CheckErr(err)
+	certCerFile.Close()
+
+	certPEMFile, err := os.Create("seanpont.com.pem")
+	gobro.CheckErr(err)
+	err = pem.Encode(certPEMFile, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+	gobro.CheckErr(err)
+	certPEMFile.Close()
+
+	keyPEMFile, err := os.Create("private.pem")
+	gobro.CheckErr(err)
+	pemBlock := pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}
+	err = pem.Encode(keyPEMFile, &pemBlock)
+	gobro.CheckErr(err)
+	keyPEMFile.Close()
+
+}
+
+// ===== TLS =================================================================
+
+func tlsEchoServer(args []string) {
+	gobro.CheckArgs(args, 1, "Usage: gonet tlsEchoServer <port>")
+	service := ":" + args[0]
+	cert, err := tls.LoadX509KeyPair("seanpont.pem", "seanpont.private.pem")
+	gobro.CheckErr(err)
+	config := &tls.Config{Certificates: []tls.Certificate{cert}}
+	listener, err := tls.Listen("tcp", service, config)
+	gobro.CheckErr(err)
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			gobro.LogErr(err)
+			continue
+		}
+		go handleTlsEchoClient(conn)
+	}
+}
+
+func handleTlsEchoClient(conn net.Conn) {
+	defer conn.Close()
+	buf := make([]byte, 512)
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			gobro.LogErr(err)
+			return
+		}
+		_, err = conn.Write(buf[:n])
+		if err != nil {
+			gobro.LogErr(err)
+			return
+		}
+	}
+}
+
 // ===== MAIN ================================================================
 
 func main() {
@@ -474,6 +561,8 @@ func main() {
 		serializePerson,
 		ftpServer,
 		md5Hash,
-		blowfisher).Run(os.Args)
+		blowfisher,
+		genX509Cert,
+		tlsEchoServer).Run(os.Args)
 
 }
