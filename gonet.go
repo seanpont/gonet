@@ -159,7 +159,7 @@ func udpDaytimeServer(args []string) {
 /*
 EchoServer listens to the given port
 */
-func echoServer(args []string) {
+func tcpEchoServer(args []string) {
 	if len(args) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: echoServer <port>\n")
 		os.Exit(1)
@@ -194,7 +194,7 @@ func echoServer(args []string) {
 	}
 }
 
-func echoServer2(args []string) {
+func tcpEchoServer2(args []string) {
 	gobro.CheckArgs(args, 1, "Usage: echoServer2 <port>")
 	listener, err := net.Listen("tcp", ":"+args[0])
 	gobro.CheckErr(err)
@@ -381,7 +381,6 @@ func handleFtpConn(conn net.Conn) {
 		gobro.TrimAll(request)
 		fmt.Println(request)
 		command := strings.ToLower(request[0])
-		fmt.Println(command, command == "cd", command == "ls", command == "pwd")
 		var resp string
 		if command == "cd" {
 			resp, err = "OK", os.Chdir(request[1])
@@ -531,6 +530,7 @@ func handleTlsEchoClient(conn net.Conn) {
 			gobro.LogErr(err)
 			return
 		}
+		fmt.Print("Recieved", string(buf[:n]))
 		_, err = conn.Write(buf[:n])
 		if err != nil {
 			gobro.LogErr(err)
@@ -551,8 +551,8 @@ func main() {
 		printArgs,
 		parseIp,
 		resolveIp,
-		echoServer,
-		echoServer2,
+		tcpEchoServer,
+		tcpEchoServer2,
 		lookupPort,
 		headRequest,
 		headRequest2,
