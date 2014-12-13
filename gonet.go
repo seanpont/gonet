@@ -16,6 +16,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/seanpont/gobro"
+	"github.com/seanpont/gobro/commander"
+	"github.com/seanpont/gobro/strarr"
 	"io/ioutil"
 	"math/big"
 	"net"
@@ -65,7 +67,7 @@ To interrogate this file, use net.LookupPort(network, service string) (port int,
 network = "tcp" or "udp" and the service is the name of the sertice, like "telnet" or "domain"
 */
 func lookupPort(args []string) {
-	gobro.CheckArgs(args, 2, "Usage: lookupPort <tcp or udp> <service>")
+	commander.CheckArgs(args, 2, "Usage: lookupPort <tcp or udp> <service>")
 	networkType, service := args[0], args[1]
 
 	port, err := net.LookupPort(networkType, service)
@@ -86,7 +88,7 @@ func (c *TCPConn) Read(b []byte) (n int, err os.Error)
 This function sends a HEAD request.
 */
 func headRequest(args []string) {
-	gobro.CheckArgs(args, 1, "Usage: headRequest host:port")
+	commander.CheckArgs(args, 1, "Usage: headRequest host:port")
 	service := args[0]
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
 	gobro.CheckErr(err)
@@ -105,7 +107,7 @@ func headRequest(args []string) {
 }
 
 func headRequest2(args []string) {
-	gobro.CheckArgs(args, 1, "Usage: headRequest2 host:port")
+	commander.CheckArgs(args, 1, "Usage: headRequest2 host:port")
 	service := args[0]
 	conn, err := net.Dial("tcp", service)
 	gobro.CheckErr(err)
@@ -119,7 +121,7 @@ func headRequest2(args []string) {
 // ===== UDP DAYTIME =========================================================
 
 func udpDaytimeClient(args []string) {
-	gobro.CheckArgs(args, 1, "udpDaytimeClient host:port")
+	commander.CheckArgs(args, 1, "udpDaytimeClient host:port")
 	service := args[0]
 	udpAddr, err := net.ResolveUDPAddr("udp", service)
 	gobro.CheckErr(err)
@@ -134,7 +136,7 @@ func udpDaytimeClient(args []string) {
 }
 
 func udpDaytimeServer(args []string) {
-	gobro.CheckArgs(args, 1, "udpDaytimeServer <port>")
+	commander.CheckArgs(args, 1, "udpDaytimeServer <port>")
 	service := ":" + args[0]
 	udpAddr, err := net.ResolveUDPAddr("udp", service)
 	gobro.CheckErr(err)
@@ -195,7 +197,7 @@ func tcpEchoServer(args []string) {
 }
 
 func tcpEchoServer2(args []string) {
-	gobro.CheckArgs(args, 1, "Usage: echoServer2 <port>")
+	commander.CheckArgs(args, 1, "Usage: echoServer2 <port>")
 	listener, err := net.Listen("tcp", ":"+args[0])
 	gobro.CheckErr(err)
 	for {
@@ -222,7 +224,7 @@ func tcpEchoServer2(args []string) {
 }
 
 func udpEchoServer(args []string) {
-	gobro.CheckArgs(args, 1, "Usage: udpEchoServer <port>")
+	commander.CheckArgs(args, 1, "Usage: udpEchoServer <port>")
 	packetConn, err := net.ListenPacket("udp", ":"+args[0])
 	gobro.CheckErr(err)
 	var b [512]byte
@@ -237,7 +239,7 @@ func udpEchoServer(args []string) {
 }
 
 func udpClient(args []string) {
-	gobro.CheckArgs(args, 1, "udpClient host:port")
+	commander.CheckArgs(args, 1, "udpClient host:port")
 	udpAddr, err := net.ResolveUDPAddr("udp", args[0])
 	gobro.CheckErr(err)
 	udpConn, err := net.DialUDP("udp", nil, udpAddr)
@@ -260,7 +262,7 @@ func udpClient(args []string) {
 
 func ping(args []string) {
 	// THIS FUNCTION IS NOT WORKING
-	gobro.CheckArgs(args, 1, "ping <host>")
+	commander.CheckArgs(args, 1, "ping <host>")
 	ipAddr, err := net.ResolveIPAddr("ip", args[0])
 	gobro.CheckErr(err, "Resolution Error!")
 	ipConn, err := net.DialIP("ip4:icmp", ipAddr, ipAddr)
@@ -326,7 +328,7 @@ type Decoder interface {
 }
 
 func serializePerson(args []string) {
-	gobro.CheckArgs(args, 1, "serializePersion <json or gob")
+	commander.CheckArgs(args, 1, "serializePersion <json or gob")
 	person := defaultPerson()
 	fmt.Println(*person)
 	file, err := os.Create(os.TempDir() + "temp.json")
@@ -358,7 +360,7 @@ func serializePerson(args []string) {
 // ===== DIRECTORY BROWSER ===================================================
 
 func ftpServer(args []string) {
-	gobro.CheckArgs(args, 1, "ftpServer <port>")
+	commander.CheckArgs(args, 1, "ftpServer <port>")
 	listener, err := net.Listen("tcp", ":"+args[0])
 	gobro.CheckErr(err)
 	for {
@@ -378,7 +380,7 @@ func handleFtpConn(conn net.Conn) {
 			return
 		}
 		request := strings.Split(string(buff[:n]), " ")
-		gobro.TrimAll(request)
+		strarr.TrimAll(request)
 		fmt.Println(request)
 		command := strings.ToLower(request[0])
 		var resp string
@@ -504,7 +506,7 @@ func genX509Cert(args []string) {
 // ===== TLS =================================================================
 
 func tlsEchoServer(args []string) {
-	gobro.CheckArgs(args, 1, "Usage: gonet tlsEchoServer <port>")
+	commander.CheckArgs(args, 1, "Usage: gonet tlsEchoServer <port>")
 	service := ":" + args[0]
 	cert, err := tls.LoadX509KeyPair("seanpont.com.pem", "private.pem")
 	gobro.CheckErr(err)
@@ -547,7 +549,7 @@ func tlsEchoClient(args []string) {
 
 func main() {
 
-	gobro.NewCommandMap(
+	commander.NewCommandMap(
 		printArgs,
 		parseIp,
 		resolveIp,
